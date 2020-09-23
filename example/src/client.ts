@@ -9,12 +9,12 @@ import {
 } from 'monaco-languageclient';
 import normalizeUrl = require('normalize-url');
 const ReconnectingWebSocket = require('reconnecting-websocket');
-
+const TYPESCRIPT = 'typescript';
 // register Monaco languages
 monaco.languages.register({
-    id: 'json',
-    extensions: ['.json', '.bowerrc', '.jshintrc', '.jscsrc', '.eslintrc', '.babelrc'],
-    aliases: ['JSON', 'json'],
+    id: TYPESCRIPT,
+    extensions: ['.typescript'],
+    aliases: ['TypeScript', 'typescript', 'TYPESCRIPT', 'TS', 'ts'],
     mimetypes: ['application/json'],
 });
 
@@ -24,18 +24,19 @@ const value = `{
     "line_endings": "unix"
 }`;
 const editor = monaco.editor.create(document.getElementById("container")!, {
-    model: monaco.editor.createModel(value, 'json', monaco.Uri.parse('inmemory://model.json')),
+    model: monaco.editor.createModel(value, TYPESCRIPT, monaco.Uri.parse('file:///demo/ts/file.ts')),
     glyphMargin: true,
+    theme: "vs-dark",
     lightbulb: {
         enabled: true
     }
 });
 
 // install Monaco language client services
-MonacoServices.install(editor);
+MonacoServices.install(editor, { rootUri: 'file:///demo/ts' });
 
 // create the web socket
-const url = createUrl('/sampleServer')
+const url = createUrl('ws://localhost:3000/ts')
 const webSocket = createWebSocket(url);
 // listen when the web socket is opened
 listen({
@@ -53,7 +54,7 @@ function createLanguageClient(connection: MessageConnection): MonacoLanguageClie
         name: "Sample Language Client",
         clientOptions: {
             // use a language id as a document selector
-            documentSelector: ['json'],
+            documentSelector: [TYPESCRIPT],
             // disable the default error handler
             errorHandler: {
                 error: () => ErrorAction.Continue,
@@ -70,11 +71,10 @@ function createLanguageClient(connection: MessageConnection): MonacoLanguageClie
 }
 
 function createUrl(path: string): string {
-    const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-    return normalizeUrl(`${protocol}://${location.host}${location.pathname}${path}`);
+    return normalizeUrl(path);
 }
 
-function createWebSocket(url: string): WebSocket {
+function createWebSocket(urlString: string): WebSocket {
     const socketOptions = {
         maxReconnectionDelay: 10000,
         minReconnectionDelay: 1000,
@@ -83,5 +83,5 @@ function createWebSocket(url: string): WebSocket {
         maxRetries: Infinity,
         debug: false
     };
-    return new ReconnectingWebSocket(url, [], socketOptions);
+    return new ReconnectingWebSocket(urlString, [], socketOptions);
 }
